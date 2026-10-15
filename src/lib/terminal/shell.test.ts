@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { profile } from '../../data/resume';
 import { buildDossier } from './dossier';
 import { resolve } from './fs';
 import { complete, run, type Block, type Shell } from './shell';
@@ -118,6 +120,12 @@ describe('run', () => {
     expect(run('breach', shellWith()).effect).toEqual({ t: 'navigate', href: '/' });
     expect(run('cv', shellWith()).effect).toEqual({ t: 'navigate', href: '/cv' });
     expect(run('clear', shellWith()).effect).toEqual({ t: 'clear' });
+  });
+
+  it('copies the dossier to a shard: downloads the PDF CV, which must exist', () => {
+    expect(run('shard', shellWith()).effect).toEqual({ t: 'download', href: profile.pdf });
+    expect(run('exfiltrate', shellWith()).effect).toEqual({ t: 'download', href: profile.pdf });
+    expect(existsSync(`public${profile.pdf}`), `public${profile.pdf}`).toBe(true);
   });
 
   it('opens the skill tree only once career is decrypted', () => {

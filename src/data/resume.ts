@@ -62,6 +62,8 @@ export const profile = {
   location: 'Toulouse, France',
   languages: ['French (native)', 'English (fluent technical)'],
   email: 'sami.chibani.pro@gmail.com',
+  /** The PDF version of this CV, exported by hand into public/: update it with this file. */
+  pdf: '/sami-chibani-cv.pdf',
   summary:
     'Site Reliability Engineer with hands-on expertise across cloud-native and bare-metal infrastructure, networking, observability and automation. Builds reliable, scalable systems, troubleshoots production incidents, and improves tooling in Python and Go.',
   bio: [
@@ -104,6 +106,7 @@ export const experience: Job[] = [
     missions: [
       'Built observability with OpenTelemetry, Prometheus, Grafana',
       'Architected GCP networking: HA VPN, Cilium BGP/eBPF, multi-region EU/US/Asia',
+      'Built the whole security plane around the HashiCorp Vault platform',
       'Ran GKE, Cloud Run & Compute Engine as code (Terraform)',
       'Maintained CI/CD pipelines; incident management & on-call',
       'Deployed AI agent fleet on Gemini Enterprise Agent Platform',
