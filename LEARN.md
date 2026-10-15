@@ -348,7 +348,7 @@ the section that unlocks them; `resolve` walks the tree to find what a path like
 is an entry in a table, `COMMANDS`, with a short description and a `run` function. The main function,
 `run(input, shell)`, splits what you typed into a command name and arguments, finds the command, and
 returns what to show (**blocks** of output), the new current folder, and maybe an **effect**
-(clear the screen, go to another page, open the skill tree). It never draws anything: it only
+(clear the screen, go to another page, download a file, open the skill tree). It never draws anything: it only
 describes the result. Adding a command means adding an entry to `COMMANDS`, plus a test.
 
 `complete` does the Tab key: it finds the only name that starts with what you typed.

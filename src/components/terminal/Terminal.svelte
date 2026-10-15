@@ -35,6 +35,9 @@
     cwd = result.cwd;
     if (result.view) view = result.view;
     if (result.effect?.t === 'skilltree') skillTree = true;
+    if (result.effect?.t === 'download') {
+      Object.assign(document.createElement('a'), { href: result.effect.href, download: '' }).click();
+    }
     if (command.trim()) history = [...history.filter((h) => h !== command), command];
     cursor = history.length;
     if (result.effect?.t === 'navigate') {
@@ -147,6 +150,7 @@
     ...(unlocked.has('career') ? ['skills'] : []),
     'whoami',
     'breach',
+    'shard',
     'cv',
   ];
 

@@ -33,7 +33,10 @@ const jsonLd = {
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 
   <main>
-    <nav class="back"><a href="/">&lt; Breach terminal</a></nav>
+    <nav class="back">
+      <a href="/">&lt; Breach terminal</a>
+      <a href={profile.pdf} download>Download PDF</a>
+    </nav>
 
     <header>
       <h1>{profile.name}</h1>
@@ -186,6 +189,8 @@ const jsonLd = {
   }
 
   .back {
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 2rem;
     font-weight: 600;
     letter-spacing: 0.04em;

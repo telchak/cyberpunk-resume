@@ -15,6 +15,7 @@ Guide for contributors, human or AI. Start with the [README](README.md) for what
 | To change…                               | Edit                                                       |
 | ---------------------------------------- | ---------------------------------------------------------- |
 | CV content (jobs, skills, links, bio)    | `src/data/resume.ts`                                       |
+| The downloadable PDF CV                  | `public/sami-chibani-cv.pdf` (exported by hand)            |
 | Skill tree: perks, locked skills, icons  | `src/data/skilltree.ts`                                    |
 | Dossier sections and the daemons per one | `src/lib/daemons.ts`                                       |
 | Breach rules / puzzle generation         | `src/lib/breach/` (pure TypeScript, tested)                |

@@ -56,9 +56,12 @@
                 </li>
               {/each}
             </ul>
-            {#if SECTIONS.some((s) => !unlocked.has(s.id))}
-              <a class="button" href="/">BREACH TO DECRYPT</a>
-            {/if}
+            <p class="actions">
+              {#if SECTIONS.some((s) => !unlocked.has(s.id))}
+                <a class="button" href="/">BREACH TO DECRYPT</a>
+              {/if}
+              <a class="button shard" href={profile.pdf} download>COPY TO SHARD</a>
+            </p>
           {:else if view.card.t === 'profile'}
             <p class="kicker">SUBJECT</p>
             <p class="big">{profile.name}</p>
@@ -383,6 +386,22 @@
 
   .button:hover,
   .button:focus-visible {
+    background: var(--cyan);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin: 0;
+  }
+
+  .button.shard {
+    background: var(--yellow);
+  }
+
+  .button.shard:hover,
+  .button.shard:focus-visible {
     background: var(--cyan);
   }
 

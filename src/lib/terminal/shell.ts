@@ -1,5 +1,6 @@
 // Commands of the dossier terminal. Pure functions: `run` turns an input line into output blocks,
 // a new working directory and optional effects; the Svelte component renders them.
+import { profile } from '../../data/resume';
 import { SECTIONS } from '../daemons';
 import { formatPath, resolve, visibleChildren, type DirNode, type Line, type Node, type View } from './fs';
 
@@ -19,7 +20,8 @@ export type Block =
   /** Easter egg: Samurai logo in ASCII art, loaded on demand by the UI. */
   | { t: 'samurai' };
 
-export type Effect = { t: 'clear' } | { t: 'navigate'; href: string } | { t: 'skilltree' };
+export type Effect =
+  { t: 'clear' } | { t: 'navigate'; href: string } | { t: 'download'; href: string } | { t: 'skilltree' };
 
 export interface Shell {
   root: DirNode;
@@ -212,6 +214,23 @@ const COMMANDS: Record<string, Command> = {
     run: () => ({ ...say('//OPENING PLAIN CV...'), effect: { t: 'navigate', href: '/cv' } }),
   },
 
+  shard: {
+    usage: 'shard',
+    help: 'copy the dossier to a data shard (download the CV as a PDF)',
+    run: () => ({
+      blocks: [
+        {
+          t: 'lines',
+          lines: [
+            { t: 'text', text: '//COPYING DOSSIER TO DATA SHARD ...' },
+            { t: 'text', text: `//SHARD WRITTEN: ${profile.pdf.slice(1)}` },
+          ],
+        },
+      ],
+      effect: { t: 'download', href: profile.pdf },
+    }),
+  },
+
   exit: {
     usage: 'exit',
     help: 'disconnect',
@@ -228,6 +247,10 @@ const ALIASES: Record<string, string> = {
   '?': 'help',
   perks: 'skills',
   build: 'skills',
+  download: 'shard',
+  extract: 'shard',
+  exfiltrate: 'shard',
+  dump: 'shard',
 };
 
 /** Easter eggs: matched case-insensitively, deliberately left out of `help` and tab completion. */
