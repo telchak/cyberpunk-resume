@@ -1,0 +1,23 @@
+---
+import '@fontsource/share-tech-mono/400.css';
+import Base from '../layouts/Base.astro';
+import Terminal from '../components/terminal/Terminal.svelte';
+import { profile } from '../data/resume';
+---
+
+<Base title={`Dossier — ${profile.name}`} noindex notice="pinned">
+  <Terminal client:only="svelte" />
+  <noscript>
+    <p class="noscript">
+      The dossier terminal needs JavaScript. <a href="/cv">Read the plain CV instead.</a>
+    </p>
+  </noscript>
+</Base>
+
+<style>
+  .noscript {
+    max-width: 40rem;
+    margin: 4rem auto;
+    font-size: 1.2rem;
+  }
+</style>

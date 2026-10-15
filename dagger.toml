@@ -1,0 +1,18 @@
+# Dagger workspace: the checks CI runs, also runnable locally with `dagger check`.
+# Each toolchain is a ready-made module, pinned in dagger.lock (`dagger lock update` moves them).
+# Both run on Node 24, like the production image (Dockerfile).
+
+# Runs `npm run build` (astro check, then astro build), then the unit tests.
+[modules.vitest]
+source = "github.com/dagger/vitest"
+
+[modules.vitest.settings]
+baseImageAddress = "node:24-alpine"
+build = true
+
+# Runs `prettier --check`, with the project's .prettierrc.json and .prettierignore.
+[modules.prettier]
+source = "github.com/dagger/prettier"
+
+[modules.prettier.settings]
+baseImageAddress = "node:24-alpine"

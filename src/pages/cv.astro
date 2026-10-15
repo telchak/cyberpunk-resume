@@ -1,0 +1,327 @@
+---
+import Base from '../layouts/Base.astro';
+import {
+  education,
+  experience,
+  formatMonth,
+  fixers,
+  links,
+  profile,
+  publications,
+  sideOps,
+  skillGroups,
+} from '../data/resume';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  jobTitle: profile.title,
+  email: `mailto:${profile.email}`,
+  url: Astro.site?.href,
+  address: { '@type': 'PostalAddress', addressLocality: 'Toulouse', addressCountry: 'FR' },
+  knowsLanguage: ['fr', 'en'],
+  alumniOf: education.map((e) => ({ '@type': 'EducationalOrganization', name: e.school })),
+  sameAs: [...links, ...fixers].map((l) => l.href),
+};
+---
+
+<Base
+  title={`${profile.name} — ${profile.title} — CV`}
+  description={`CV of ${profile.name}, ${profile.title} based in ${profile.location}. ${profile.summary}`}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+  <main>
+    <nav class="back"><a href="/">&lt; Breach terminal</a></nav>
+
+    <header>
+      <h1>{profile.name}</h1>
+      <p class="title">{profile.title}</p>
+      <ul class="contact">
+        <li>{profile.location}</li>
+        <li><a href={`mailto:${profile.email}`}>{profile.email}</a></li>
+        {
+          [...links, ...fixers].map((l) => (
+            <li>
+              <a href={l.href} rel="me">
+                {l.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </header>
+
+    <section aria-labelledby="about">
+      <h2 id="about">About</h2>
+      <p class="summary">{profile.summary}</p>
+      {profile.bio.map((p) => <p>{p}</p>)}
+      <dl class="facts">
+        <dt>Languages</dt>
+        <dd>{profile.languages.join(', ')}</dd>
+        <dt>Soft skills</dt>
+        <dd>{profile.softSkills.join(', ')}</dd>
+        <dt>Interests</dt>
+        <dd>{profile.hobbies.join(', ')}</dd>
+      </dl>
+    </section>
+
+    <section aria-labelledby="experience">
+      <h2 id="experience">Experience</h2>
+      {
+        experience.map((job) => (
+          <article class="job">
+            <h3>
+              {job.role} <span class="at">· {job.company}</span>
+            </h3>
+            <p class="dates">
+              <time datetime={job.start}>{formatMonth(job.start)}</time> –{' '}
+              {job.end ? <time datetime={job.end}>{formatMonth(job.end)}</time> : 'Present'}
+            </p>
+            <ul>
+              {job.missions.map((m) => (
+                <li>{m}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="education">
+      <h2 id="education">Education</h2>
+      {
+        education.map((e) => (
+          <article class="job">
+            <h3>
+              {e.title} <span class="at">· {e.school}</span>
+            </h3>
+            <p class="dates">
+              <time datetime={e.start}>{formatMonth(e.start)}</time> –{' '}
+              <time datetime={e.end}>{formatMonth(e.end)}</time>
+            </p>
+            <ul>
+              {e.details.map((d) => (
+                <li>{d}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="skills">
+      <h2 id="skills">Skills</h2>
+      <dl class="facts skills">
+        {
+          skillGroups.map((group) => (
+            <>
+              <dt>{group.name}</dt>
+              <dd>{group.skills.join(', ')}</dd>
+            </>
+          ))
+        }
+      </dl>
+    </section>
+
+    <section aria-labelledby="publications">
+      <h2 id="publications">Publications</h2>
+      {
+        publications.map((series) => (
+          <article class="job">
+            <h3>
+              {series.title} <span class="at">· {series.platform}</span>
+            </h3>
+            <p class="dates">{series.language}</p>
+            <ul>
+              {series.articles.map((a) => (
+                <li>
+                  <a href={a.href}>{a.title}</a>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </section>
+
+    <section aria-labelledby="community">
+      <h2 id="community">Community</h2>
+      {
+        sideOps.map((op) => (
+          <p>
+            <strong>{op.name}</strong> — {op.role} since {op.since}. {op.description}
+          </p>
+        ))
+      }
+    </section>
+  </main>
+</Base>
+
+<style>
+  main {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    color: #e6efd0;
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+    line-height: 1.6;
+  }
+
+  a {
+    color: var(--yellow);
+  }
+
+  h1,
+  h2,
+  h3,
+  .title,
+  .back {
+    font-family: var(--font);
+  }
+
+  .back {
+    margin-bottom: 2rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .back a {
+    text-decoration: none;
+  }
+
+  h1 {
+    margin: 0;
+    color: var(--yellow);
+    font-size: 3rem;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .title {
+    margin: 0.3rem 0 0.8rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  section {
+    margin-top: 2.5rem;
+  }
+
+  h2 {
+    margin: 0 0 1rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--yellow-line);
+    color: var(--yellow);
+    font-size: 1.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.2rem 1.5rem;
+  }
+
+  dt {
+    color: var(--yellow);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .job + .job {
+    margin-top: 1.8rem;
+  }
+
+  .at {
+    color: var(--yellow);
+  }
+
+  .dates {
+    margin: 0.1rem 0 0.5rem;
+    opacity: 0.75;
+    font-size: 0.95rem;
+  }
+
+  .summary {
+    font-size: 1.1rem;
+  }
+
+  .job ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  .skills {
+    gap: 0.35rem 1.5rem;
+  }
+
+  @media (max-width: 36rem) {
+    .facts {
+      grid-template-columns: 1fr;
+    }
+
+    dd + dt {
+      margin-top: 0.5rem;
+    }
+  }
+
+  @media print {
+    :global(html),
+    :global(body) {
+      background: #fff;
+      color: #000;
+    }
+
+    main {
+      max-width: none;
+      padding: 0;
+      color: #000;
+    }
+
+    a,
+    h1,
+    h2,
+    .at,
+    dt {
+      color: #000;
+    }
+
+    h2 {
+      border-color: #000;
+    }
+
+    .back {
+      display: none;
+    }
+
+    .job {
+      break-inside: avoid;
+    }
+  }
+</style>

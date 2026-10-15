@@ -1,0 +1,9 @@
+# Rebuilt or downloaded inside the image.
+node_modules
+dist
+.astro
+public/skilltree
+
+.git
+.env
+.env.*

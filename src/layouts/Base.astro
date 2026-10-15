@@ -1,0 +1,76 @@
+---
+import '@fontsource/rajdhani/400.css';
+import '@fontsource/rajdhani/500.css';
+import '@fontsource/rajdhani/600.css';
+import '@fontsource/rajdhani/700.css';
+import '../styles/global.css';
+import { FAN_NOTICE } from '../lib/fanNotice';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Keep the page out of search results (e.g. content duplicated from /cv). */
+  noindex?: boolean;
+  /**
+   * Where the fan content notice goes: after the content (`flow`), or pinned to the bottom of the
+   * viewport (`pinned`) on full-screen pages. It is always rendered.
+   */
+  notice?: 'flow' | 'pinned';
+}
+
+const {
+  title,
+  description = 'Sami Chibani — Senior Site Reliability Engineer. Breach the protocol to access the dossier.',
+  noindex = false,
+  notice = 'flow',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <title>{title}</title>
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <p class:list={['fan-notice', notice]} data-fan-notice>{FAN_NOTICE}</p>
+  </body>
+</html>
+
+<style>
+  .fan-notice {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    color: rgb(230 237 210 / 0.7);
+    font: 500 13px/1.3 var(--font);
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .fan-notice.pinned {
+    position: fixed;
+    bottom: 0.25rem;
+    left: 50%;
+    z-index: 5;
+    padding: 0.1rem 0.6rem;
+    width: max-content;
+    max-width: calc(100vw - 1rem);
+    translate: -50% 0;
+    background: rgb(7 8 13 / 0.75);
+  }
+
+  @media print {
+    .fan-notice {
+      color: #000;
+    }
+  }
+</style>

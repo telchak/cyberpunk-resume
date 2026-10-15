@@ -1,0 +1,62 @@
+name: Continuous Delivery
+
+# Builds the production image (Dockerfile) and pushes it to GitHub's container registry, once
+# Continuous Integration has passed on a push to main. Nothing here deploys: the cluster serving
+# the site watches the image tags and rolls out new ones itself.
+on:
+  workflow_run:
+    workflows: [Continuous Integration]
+    types: [completed]
+    branches: [main]
+  # Rebuilds main by hand, for instance after a base image fix.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  image:
+    # A push to main that passed CI, never a pull request from a branch named main.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      EXTENSION_REPO: ${{ secrets.EXTENSION_REPO }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      # Optional private extension (see AGENTS.md): the site/ directory of a private repository,
+      # copied into src/extensions/. Set the EXTENSION_REPO (owner/name) and EXTENSION_TOKEN
+      # (read access to it) secrets to use one; without them, the site is built without it.
+      - name: private extension
+        if: env.EXTENSION_REPO != ''
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.EXTENSION_REPO }}
+          token: ${{ secrets.EXTENSION_TOKEN }}
+          path: .extension
+      - if: env.EXTENSION_REPO != ''
+        run: mkdir -p src/extensions && mv .extension/site src/extensions/private && rm -rf .extension
+
+      # Core Dagger functions only: docker-build reads the Dockerfile, publish pushes the image.
+      # The tag's run number orders the builds (the cluster deploys the highest); the commit says
+      # what is in it.
+      - name: build and push
+        uses: dagger/dagger-for-github@v8.4.1
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          version: '1.0.0-beta.15'
+          shell: |
+            host | directory . | docker-build | with-registry-auth ghcr.io ${{ github.actor }} env://REGISTRY_TOKEN | publish ghcr.io/${{ github.repository }}:main-${{ github.run_number }}-${{ env.SHA }}

@@ -1,0 +1,28 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Every check is a Dagger toolchain listed in dagger.toml: dagger/prettier checks the formatting,
+  # dagger/vitest type-checks and builds the site, then runs the unit tests. `dagger check` runs
+  # exactly the same thing on your machine.
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: dagger check
+        uses: dagger/dagger-for-github@v8.4.1
+        with:
+          check: '**'
+          version: '1.0.0-beta.15'

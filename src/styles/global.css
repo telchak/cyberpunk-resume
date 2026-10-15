@@ -1,0 +1,59 @@
+/* Colors sampled from in-game footage (approximate: compression and bloom shift them). */
+:root {
+  --bg: #120f17;
+  --yellow: #d0ed57;
+  --yellow-bright: #dffd58;
+  --yellow-line: rgb(208 237 87 / 0.35);
+  --yellow-faint: rgb(208 237 87 / 0.12);
+  --row-active: #282b38;
+  --col-active: rgb(208 237 87 / 0.06);
+  --cyan: #5ef6ff;
+  --cyan-dim: rgb(94 246 255 / 0.35);
+  --red: #fe564f;
+  --green: #1bd476;
+  --green-dark: #13231b;
+  --used: #4b3f5c;
+
+  --font: 'Rajdhani', 'Arial Narrow', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--yellow);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

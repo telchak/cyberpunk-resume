@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import BreachProtocol from '../components/breach/BreachProtocol.svelte';
+---
+
+<Base title="Sami Chibani — Breach Protocol" notice="pinned">
+  <main>
+    <h1 class="sr-only">
+      Sami Chibani, Senior Site Reliability Engineer: breach the protocol to access the dossier
+    </h1>
+    <BreachProtocol client:only="svelte" />
+    <noscript>
+      <p class="noscript">
+        The breach terminal needs JavaScript. <a href="/cv">Read the plain CV instead.</a>
+      </p>
+    </noscript>
+  </main>
+</Base>
+
+<style is:global>
+  /* The terminal is authored on a 1920x1080 grid (1rem = 16px) and scales to fit the viewport. */
+  html {
+    font-size: min(calc(100vw / 120), calc(100vh / 67.5));
+  }
+
+  body {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  main {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    /* The terminal's full-width bands must not widen the page (phones would zoom out). */
+    overflow: hidden;
+  }
+
+  .noscript {
+    font-size: 2rem;
+  }
+</style>

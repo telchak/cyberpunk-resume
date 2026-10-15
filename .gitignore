@@ -1,0 +1,26 @@
+# build output
+/dist
+/.astro
+
+# dependencies
+/node_modules
+
+# logs
+npm-debug.log*
+
+# environment
+.env
+.env.*
+
+# editors
+/.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+
+# Skill tree artwork (c) CD PROJEKT RED: downloaded by `npm run assets:skilltree`, never committed
+/public/skilltree/
+
+# Private extensions, copied in from their own repositories (see AGENTS.md)
+/src/extensions/
