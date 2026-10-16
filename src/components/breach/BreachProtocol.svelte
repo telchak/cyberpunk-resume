@@ -17,7 +17,7 @@
   import { createRng, randomSeed } from '../../lib/breach/random';
   import type { BreachState, Code, DaemonDef, Pos } from '../../lib/breach/types';
   import { BREACH_OPTIONS, SECTIONS } from '../../lib/daemons';
-  import { saveUnlocks } from '../../lib/unlocks';
+  import { loadUnlocks, saveUnlocks } from '../../lib/unlocks';
   import CodeMatrix from './CodeMatrix.svelte';
   import DaemonPanel from './DaemonPanel.svelte';
   import EndPanel from './EndPanel.svelte';
@@ -59,6 +59,13 @@
   );
   const ended = $derived(breach.phase === 'ended' && banner === null);
 
+  const countDecrypted = () => {
+    const unlocked = loadUnlocks();
+    return SECTIONS.filter((s) => unlocked.has(s.id)).length;
+  };
+  /** Sections decrypted by earlier breaches in this browser: the backdoor they left stays open. */
+  let decrypted = $state(countDecrypted());
+
   function tick() {
     remaining = Math.max(0, (deadline - performance.now()) / 1000);
     if (remaining === 0) update(timeout(breach));
@@ -85,6 +92,7 @@
     const installed = next.puzzle.daemons.filter((_, i) => next.statuses[i] === 'installed');
     // A daemon's id is the dossier section it decrypts.
     saveUnlocks(installed.map((d) => d.id).filter((id) => SECTIONS.some((s) => s.id === id)));
+    decrypted = countDecrypted();
     // A perfect run installs every daemon, even when the last one fills the buffer.
     if (installed.length === next.puzzle.daemons.length) advance(next);
     else stopClock();
@@ -280,7 +288,12 @@
     <Finale onclose={() => (finale = false)} />
   {/if}
 
-  <a class="skip" href="/cv">&gt; SKIP_BREACH <span>// plain CV</span></a>
+  <nav class="exits" aria-label="Other ways in">
+    <a href="/cv">&gt; SKIP_BREACH <span>// plain CV</span></a>
+    {#if decrypted > 0}
+      <a href="/dossier">&gt; PING_BACKDOOR <span>// {decrypted}/{SECTIONS.length} decrypted</span></a>
+    {/if}
+  </nav>
 
   <ul class="hints" aria-label="Controls">
     <li><kbd>←</kbd><kbd>→</kbd> NAVIGATION</li>
@@ -535,10 +548,16 @@
     }
   }
 
-  .skip {
+  /* Ways around the breach: the plain CV, and the dossier for those who already got in. */
+  .exits {
     position: absolute;
     left: 7.8rem;
     top: 62.4rem;
+    display: flex;
+    gap: 2.4rem;
+  }
+
+  .exits a {
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -546,13 +565,13 @@
     opacity: 0.75;
   }
 
-  .skip span {
+  .exits span {
     opacity: 0.6;
     font-weight: 500;
   }
 
-  .skip:hover,
-  .skip:focus-visible {
+  .exits a:hover,
+  .exits a:focus-visible {
     opacity: 1;
     color: var(--cyan);
   }
