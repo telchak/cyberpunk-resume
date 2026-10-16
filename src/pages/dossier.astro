@@ -2,11 +2,13 @@
 import '@fontsource/share-tech-mono/400.css';
 import Base from '../layouts/Base.astro';
 import Terminal from '../components/terminal/Terminal.svelte';
+import Overlays from '../components/Overlays.svelte';
 import { profile } from '../data/resume';
 ---
 
 <Base title={`Dossier — ${profile.name}`} noindex notice="pinned">
   <Terminal client:only="svelte" />
+  <Overlays client:only="svelte" />
   <noscript>
     <p class="noscript">
       The dossier terminal needs JavaScript. <a href="/cv">Read the plain CV instead.</a>

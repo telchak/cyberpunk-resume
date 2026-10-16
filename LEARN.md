@@ -332,7 +332,8 @@ daemons are saved in the browser's **localStorage**, a small storage space each 
 your browser, which survives closing the tab. The terminal reads it to know what you decrypted.
 
 > **About `src/extensions/`:** the breach can load optional add-ons kept in other repositories
-> (`src/lib/breach/extension.ts`). That folder is ignored by Git and empty in this repository, and
+> (`src/lib/breach/extension.ts`), and so can the home page and the dossier, through
+> `src/components/Overlays.svelte`. That folder is ignored by Git and empty in this repository, and
 > the site works the same without it. You can ignore it while learning.
 
 ## 11. The dossier terminal

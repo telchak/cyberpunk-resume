@@ -39,7 +39,8 @@ input. Keep it that way: if a component grows logic worth testing, move it to `s
   `owned: false` (via `next(...)`) must not be on the CV.
 - **Daemon id = section id**: an installed daemon unlocks the dossier directory with the same id.
 - **Private extensions**: `src/extensions/` is git-ignored. Add-ons kept in their own repositories
-  are copied there and loaded by `src/lib/breach/extension.ts`; the site must work without them.
+  are copied there and loaded by `src/lib/breach/extension.ts`, `src/lib/terminal/dossier.ts` and
+  `src/components/Overlays.svelte`; the site must work without them.
   CI never sees them; CD adds one when its `EXTENSION_REPO` and `EXTENSION_TOKEN` secrets are set.
 
 ## Conventions
