@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { profile } from '../../data/resume';
 import { buildDossier } from './dossier';
 import { resolve } from './fs';
-import { complete, run, type Block, type Shell } from './shell';
+import { applyMode, complete, decodeBase64, encodeBase64, run, type Block, type Shell } from './shell';
 
 const shellWith = (...unlocked: string[]): Shell => {
   const set = new Set(unlocked);
-  return { root: buildDossier(set), cwd: [], unlocked: set };
+  return { root: buildDossier(set), cwd: [], unlocked: set, history: [] };
 };
 
 const listing = (blocks: Block[]) =>
@@ -147,11 +147,12 @@ describe('run', () => {
   it('lists dot entries only with -a, and completes them once the dot is typed', () => {
     const root = buildDossier(new Set());
     root.children.push({ kind: 'dir', name: '.config', children: [] });
-    const shell = { root, cwd: [], unlocked: new Set<string>() };
+    const shell = { root, cwd: [], unlocked: new Set<string>(), history: [] };
     const names = (input: string) => listing(run(input, shell).blocks).entries.map((e) => e.name);
     expect(names('ls')).not.toContain('.config');
     expect(names('ls -a')).toContain('.config');
-    expect(names('ls -la ~')).toContain('.config');
+    const long = run('ls -la ~', shell).blocks.find((b) => b.t === 'long');
+    expect(long?.t === 'long' && long.rows.map((r) => r.entry.name)).toContain('.config');
     expect(listing(run('ls', shell).blocks).hidden).toBe(3);
     expect(complete('cd .c', shell)).toBe('cd .config/');
     expect(error(run('cd .config', shell).blocks)).toBeUndefined();
@@ -174,5 +175,68 @@ describe('complete', () => {
     expect(complete('cd ca', shell)).toBe('cd career/');
     expect(complete('cat career/sk', shell)).toBe('cat career/skills.txt');
     expect(complete('cd pro', shell)).toBeNull();
+  });
+});
+
+describe('permissions, base64 and history', () => {
+  const text = (blocks: Block[]) =>
+    blocks.flatMap((b) => (b.t === 'lines' ? b.lines.map((l) => ('text' in l ? l.text : '')) : []));
+
+  it('applies octal and symbolic modes', () => {
+    expect(applyMode(0o644, '600')).toBe(0o600);
+    expect(applyMode(0o000, '+r')).toBe(0o444);
+    expect(applyMode(0o000, 'u+rw')).toBe(0o600);
+    expect(applyMode(0o644, 'go-r')).toBe(0o600);
+    expect(applyMode(0o777, 'o=r')).toBe(0o774);
+    expect(applyMode(0o644, 'nope')).toBeNull();
+    expect(applyMode(0o644, '999')).toBeNull();
+  });
+
+  it('shows permissions with ls -l, and refuses to read what is not readable until chmod', () => {
+    const shell = shellWith('identity');
+    const identity = shell.root.children.find((n) => n.name === 'identity');
+    if (identity?.kind !== 'dir') throw new Error('identity is a directory');
+    identity.children.push({
+      kind: 'file',
+      name: 'locked.txt',
+      lines: [{ t: 'text', text: 'hi' }],
+      mode: 0,
+      owner: 'ghost',
+    });
+
+    const long = run('ls -l identity', shell).blocks.find((b) => b.t === 'long');
+    expect(long?.t === 'long' && long.rows.find((r) => r.entry.name === 'locked.txt')).toMatchObject({
+      mode: '----------',
+      owner: 'ghost',
+    });
+    expect(long?.t === 'long' && long.rows[0]).toMatchObject({ mode: '-rw-r--r--', owner: 'sami' });
+
+    expect(error(run('cat identity/locked.txt', shell).blocks)).toBe(
+      'cat: identity/locked.txt: Permission denied',
+    );
+    expect(error(run('base64 identity/locked.txt', shell).blocks)).toContain('Permission denied');
+    expect(error(run('chmod +r identity/locked.txt', shell).blocks)).toBeUndefined();
+    expect(text(run('cat identity/locked.txt', shell).blocks)).toEqual(['hi']);
+    expect(error(run('chmod what identity/locked.txt', shell).blocks)).toBe("chmod: invalid mode: 'what'");
+  });
+
+  it('round-trips base64, UTF-8 included, and rejects what is not base64', () => {
+    const encoded = encodeBase64('Kabuki — nine seconds');
+    expect(decodeBase64(encoded)).toBe('Kabuki — nine seconds');
+    expect(
+      encodeBase64('x'.repeat(100))
+        .split('\n')
+        .map((l) => l.length),
+    ).toEqual([76, 60]);
+    expect(decodeBase64('not base64!')).toBeNull();
+  });
+
+  it('lists the commands typed in this shell, numbered', () => {
+    const shell = { ...shellWith(), history: ['cd ~/.ghost', 'ls -a'] };
+    const lines = run('history', shell).blocks.find((b) => b.t === 'lines');
+    expect(lines?.t === 'lines' && lines.lines).toEqual([
+      { t: 'field', key: '1', value: 'cd ~/.ghost' },
+      { t: 'field', key: '2', value: 'ls -a' },
+    ]);
   });
 });

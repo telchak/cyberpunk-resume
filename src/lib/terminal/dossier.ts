@@ -57,11 +57,17 @@ function readme(unlocked: ReadonlySet<string>): FileNode {
   );
 }
 
-// Extra root entries from private extensions (git-ignored): a default export in src/extensions/<name>/dossier.ts.
-const extensions = import.meta.glob<{ default: (unlocked: ReadonlySet<string>) => Node[] }>(
-  '/src/extensions/*/dossier.ts',
-  { eager: true },
-);
+// Private extensions (git-ignored), in src/extensions/<name>/dossier.ts: extra root entries (the
+// default export), and optionally earlier lines of the shell's history (`history`).
+const extensions = import.meta.glob<{
+  default: (unlocked: ReadonlySet<string>) => Node[];
+  history?: () => string[];
+}>('/src/extensions/*/dossier.ts', { eager: true });
+
+/** History lines the extensions planted, typed before the visitor's own (oldest first). */
+export function plantedHistory(): string[] {
+  return Object.values(extensions).flatMap((extension) => extension.history?.() ?? []);
+}
 
 export function buildDossier(unlocked: ReadonlySet<string>): DirNode {
   return dir('~', [
