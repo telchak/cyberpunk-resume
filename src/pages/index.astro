@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import BreachProtocol from '../components/breach/BreachProtocol.svelte';
+import Overlays from '../components/Overlays.svelte';
 ---
 
 <Base title="Sami Chibani — Breach Protocol" notice="pinned">
@@ -9,6 +10,7 @@ import BreachProtocol from '../components/breach/BreachProtocol.svelte';
       Sami Chibani, Senior Site Reliability Engineer: breach the protocol to access the dossier
     </h1>
     <BreachProtocol client:only="svelte" />
+    <Overlays client:only="svelte" />
     <noscript>
       <p class="noscript">
         The breach terminal needs JavaScript. <a href="/cv">Read the plain CV instead.</a>
