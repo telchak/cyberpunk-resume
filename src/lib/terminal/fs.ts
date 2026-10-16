@@ -34,6 +34,10 @@ export interface FileNode {
   name: string;
   lines: Line[];
   card?: Card;
+  /** Unix permission bits, e.g. 0o644 (the default); `chmod` changes them for the session. */
+  mode?: number;
+  /** Shown by `ls -l`; `sami` by default. */
+  owner?: string;
 }
 
 export interface DirNode {
@@ -42,6 +46,8 @@ export interface DirNode {
   children: Node[];
   /** Section that must be unlocked to see or enter this directory. */
   lock?: string;
+  mode?: number;
+  owner?: string;
 }
 
 export type Node = FileNode | DirNode;
@@ -96,6 +102,39 @@ export function visibleChildren(
   const listed = dir.children.filter((c) => all || !c.name.startsWith('.'));
   const entries = listed.filter((c) => c.kind === 'file' || !c.lock || unlocked.has(c.lock));
   return { entries, hidden: listed.length - entries.length };
+}
+
+const DEFAULT_MODE = { file: 0o644, dir: 0o755 };
+
+export const modeOf = (node: Node): number => node.mode ?? DEFAULT_MODE[node.kind];
+export const ownerOf = (node: Node): string => node.owner ?? 'sami';
+
+/** Whether the visitor, as the owner, may read the node (its owner read bit). */
+export const isReadable = (node: Node): boolean => (modeOf(node) & 0o400) !== 0;
+
+/** Permissions as `ls -l` prints them, e.g. `-rw-r--r--` or `drwxr-xr-x`. */
+export function formatMode(node: Node): string {
+  const mode = modeOf(node);
+  const bits = [...'rwxrwxrwx'].map((letter, i) => (mode & (0o400 >> i) ? letter : '-')).join('');
+  return (node.kind === 'dir' ? 'd' : '-') + bits;
+}
+
+/** A file's lines as plain text, as `base64` reads them. */
+export function plainText(lines: readonly Line[]): string {
+  return lines
+    .map((line) => {
+      switch (line.t) {
+        case 'field':
+          return `${line.key} ${line.value}`;
+        case 'link':
+          return `${line.label} ${line.href}`;
+        case 'blank':
+          return '';
+        default:
+          return line.text;
+      }
+    })
+    .join('\n');
 }
 
 export function formatPath(path: readonly string[]): string {

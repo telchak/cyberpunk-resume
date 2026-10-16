@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { SECTIONS } from '../../lib/daemons';
   import type { View } from '../../lib/terminal/fs';
-  import { buildDossier } from '../../lib/terminal/dossier';
+  import { buildDossier, plantedHistory } from '../../lib/terminal/dossier';
   import { formatPath } from '../../lib/terminal/fs';
   import { complete, run, type Block, type Entry, type Shell } from '../../lib/terminal/shell';
   import { loadUnlocks } from '../../lib/unlocks';
@@ -26,7 +26,8 @@
   let field: HTMLInputElement;
   let screen: HTMLElement;
 
-  const shell = (): Shell => ({ root, cwd, unlocked });
+  const planted = plantedHistory();
+  const shell = (): Shell => ({ root, cwd, unlocked, history: [...planted, ...history] });
 
   function exec(command: string) {
     const result = run(command, shell());
@@ -212,6 +213,24 @@
               <p class="hidden-note">
                 [{block.hidden} encrypted {block.hidden > 1 ? 'entries' : 'entry'} hidden —
                 <button type="button" onclick={() => exec('breach')}>breach</button> to decrypt]
+              </p>
+            {/if}
+          {:else if block.t === 'long'}
+            <ul class="long">
+              {#each block.rows as row (row.entry.path)}
+                <li>
+                  <span class="mode">{row.mode}</span><span class="owner">{row.owner}</span><button
+                    type="button"
+                    class={row.entry.kind}
+                    onclick={() => openEntry(row.entry)}
+                    >{row.entry.name}{row.entry.kind === 'dir' ? '/' : ''}</button
+                  >
+                </li>
+              {/each}
+            </ul>
+            {#if block.hidden}
+              <p class="hidden-note">
+                [{block.hidden} encrypted {block.hidden > 1 ? 'entries' : 'entry'} hidden]
               </p>
             {/if}
           {:else if block.t === 'tree'}
@@ -444,10 +463,27 @@
     list-style: none;
   }
 
-  .tree {
+  .tree,
+  .long {
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  /* ls -l: permissions and owner in fixed-width columns, then the name. */
+  .long .mode,
+  .long .owner {
+    display: inline-block;
+    color: var(--yellow-line);
+    white-space: pre;
+  }
+
+  .long .mode {
+    width: 11ch;
+  }
+
+  .long .owner {
+    width: 7ch;
   }
 
   /* Share Tech Mono has no box-drawing glyphs: use a system mono so the guides line up. */

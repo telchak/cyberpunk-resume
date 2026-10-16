@@ -2,7 +2,20 @@
 // a new working directory and optional effects; the Svelte component renders them.
 import { profile } from '../../data/resume';
 import { SECTIONS } from '../daemons';
-import { formatPath, resolve, visibleChildren, type DirNode, type Line, type Node, type View } from './fs';
+import {
+  formatMode,
+  formatPath,
+  isReadable,
+  modeOf,
+  ownerOf,
+  plainText,
+  resolve,
+  visibleChildren,
+  type DirNode,
+  type Line,
+  type Node,
+  type View,
+} from './fs';
 
 export interface Entry {
   name: string;
@@ -15,6 +28,8 @@ export type Block =
   | { t: 'command'; cwd: string; input: string }
   | { t: 'lines'; lines: Line[] }
   | { t: 'listing'; entries: Entry[]; hidden: number }
+  /** `ls -l`: one row per entry, with its permissions and owner. */
+  | { t: 'long'; rows: { mode: string; owner: string; entry: Entry }[]; hidden: number }
   | { t: 'tree'; rows: { depth: number; entry: Entry; last: boolean }[]; hidden: number }
   | { t: 'error'; text: string }
   /** Easter egg: Samurai logo in ASCII art, loaded on demand by the UI. */
@@ -27,6 +42,8 @@ export interface Shell {
   root: DirNode;
   cwd: string[];
   unlocked: ReadonlySet<string>;
+  /** Commands typed in this shell before the current one, oldest first. */
+  history: readonly string[];
 }
 
 export interface Result {
@@ -52,6 +69,44 @@ const say = (text: string): Output => ({ blocks: [{ t: 'lines', lines: [{ t: 'te
 function lockedMessage(command: string, path: string[], lock: string): string {
   const daemon = SECTIONS.find((s) => s.id === lock)?.daemon ?? 'a daemon';
   return `${command}: ${formatPath(path)}: permission denied — ICE active. Upload ${daemon} to decrypt (run \`breach\`).`;
+}
+
+/**
+ * A file's permissions after `chmod`: octal (644) or symbolic ([ugoa]* then +, - or = then r, w,
+ * x), applied to `mode`. Null for anything else.
+ */
+export function applyMode(mode: number, spec: string): number | null {
+  if (/^[0-7]{3}$/.test(spec)) return parseInt(spec, 8);
+  const match = /^([ugoa]*)([+=-])([rwx]+)$/.exec(spec);
+  if (!match) return null;
+  const [, who, op, perms] = match;
+  const shifts = [...(who.replace('a', 'ugo') || 'ugo')].map(
+    (w) => ({ u: 6, g: 3, o: 0 })[w as 'u' | 'g' | 'o'],
+  );
+  const value = [...perms].reduce((sum, p) => sum | { r: 4, w: 2, x: 1 }[p as 'r' | 'w' | 'x'], 0);
+  const bits = shifts.reduce((sum, shift) => sum | (value << shift), 0);
+  const mask = shifts.reduce((sum, shift) => sum | (7 << shift), 0);
+  if (op === '+') return mode | bits;
+  if (op === '-') return mode & ~bits;
+  return (mode & ~mask) | bits;
+}
+
+/** UTF-8 text as base64, wrapped at 76 characters like coreutils' base64. */
+export function encodeBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  const encoded = btoa(String.fromCharCode(...bytes));
+  return encoded.match(/.{1,76}/g)?.join('\n') ?? '';
+}
+
+/** Decoded base64 as UTF-8 text, ignoring line breaks; null when it is not base64. */
+export function decodeBase64(text: string): string | null {
+  const clean = text.replace(/\s/g, '');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean)) return null;
+  try {
+    return new TextDecoder().decode(Uint8Array.from(atob(clean), (c) => c.charCodeAt(0)));
+  } catch {
+    return null;
+  }
 }
 
 /** Splits arguments into flags (e.g. `-la` gives l and a) and the first path, if any. */
@@ -95,17 +150,26 @@ const COMMANDS: Record<string, Command> = {
   },
 
   ls: {
-    usage: 'ls [-a] [dir]',
-    help: 'list decrypted entries (-a: hidden ones too)',
+    usage: 'ls [-a] [-l] [dir]',
+    help: 'list decrypted entries (-a: hidden ones too, -l: permissions)',
     run: (args, shell) => {
       const { flags, target = '.' } = parseArgs(args);
       const r = lookup('ls', target, shell);
       if (!('ok' in r)) return r;
-      if (r.node.kind === 'file') {
-        return { blocks: [{ t: 'listing', entries: [entry(r.node, r.path.slice(0, -1))], hidden: 0 }] };
+      const listed =
+        r.node.kind === 'file'
+          ? { entries: [r.node], hidden: 0, parent: r.path.slice(0, -1) }
+          : { ...visibleChildren(r.node, shell.unlocked, flags.has('a')), parent: r.path };
+      if (flags.has('l')) {
+        const rows = listed.entries.map((n) => ({
+          mode: formatMode(n),
+          owner: ownerOf(n),
+          entry: entry(n, listed.parent),
+        }));
+        return { blocks: [{ t: 'long', rows, hidden: listed.hidden }] };
       }
-      const { entries, hidden } = visibleChildren(r.node, shell.unlocked, flags.has('a'));
-      return { blocks: [{ t: 'listing', entries: entries.map((n) => entry(n, r.path)), hidden }] };
+      const entries = listed.entries.map((n) => entry(n, listed.parent));
+      return { blocks: [{ t: 'listing', entries, hidden: listed.hidden }] };
     },
   },
 
@@ -128,6 +192,7 @@ const COMMANDS: Record<string, Command> = {
       const r = lookup('cat', target, shell);
       if (!('ok' in r)) return r;
       if (r.node.kind === 'dir') return error(`cat: ${target}: is a directory`);
+      if (!isReadable(r.node)) return error(`cat: ${target}: Permission denied`);
       const view = r.node.card && { path: r.path.join('/'), card: r.node.card };
       return { blocks: [{ t: 'lines', lines: r.node.lines }], view };
     },
@@ -156,6 +221,41 @@ const COMMANDS: Record<string, Command> = {
     },
   },
 
+  chmod: {
+    usage: 'chmod <mode> <file>',
+    help: "change a file's permissions (e.g. +r, 644)",
+    run: ([mode, target], shell) => {
+      if (!mode || !target) return error('chmod: missing operand');
+      const r = lookup('chmod', target, shell);
+      if (!('ok' in r)) return r;
+      const next = applyMode(modeOf(r.node), mode);
+      if (next === null) return error(`chmod: invalid mode: '${mode}'`);
+      // Permissions live on this session's tree: a new visit starts from the defaults.
+      r.node.mode = next;
+      return { blocks: [] };
+    },
+  },
+
+  base64: {
+    usage: 'base64 [-d] <file>',
+    help: 'encode a file in base64, or decode it (-d)',
+    run: (args, shell) => {
+      const { flags, target } = parseArgs(args);
+      if (!target) return error('base64: missing file operand');
+      const r = lookup('base64', target, shell);
+      if (!('ok' in r)) return r;
+      if (r.node.kind === 'dir') return error(`base64: ${target}: is a directory`);
+      if (!isReadable(r.node)) return error(`base64: ${target}: Permission denied`);
+      const text = plainText(r.node.lines);
+      const output = flags.has('d') ? decodeBase64(text) : encodeBase64(text);
+      if (output === null) return error('base64: invalid input');
+      const lines = output
+        .split('\n')
+        .map((line): Line => (line ? { t: 'text', text: line } : { t: 'blank' }));
+      return { blocks: [{ t: 'lines', lines }] };
+    },
+  },
+
   skills: {
     usage: 'skills',
     help: 'open the skill tree (needs ~/career)',
@@ -169,6 +269,19 @@ const COMMANDS: Record<string, Command> = {
     usage: 'pwd',
     help: 'print the current directory',
     run: (_, { cwd }) => say(formatPath(cwd)),
+  },
+
+  history: {
+    usage: 'history',
+    help: 'show the commands typed in this shell',
+    run: (_, { history }) => ({
+      blocks: [
+        {
+          t: 'lines',
+          lines: history.map((command, i): Line => ({ t: 'field', key: String(i + 1), value: command })),
+        },
+      ],
+    }),
   },
 
   whoami: {
