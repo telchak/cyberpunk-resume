@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { SECTIONS } from '../../lib/daemons';
   import type { View } from '../../lib/terminal/fs';
+  import { dig, type DigQuery } from '../../lib/terminal/dns';
   import { buildDossier, plantedHistory } from '../../lib/terminal/dossier';
   import { formatPath } from '../../lib/terminal/fs';
   import { complete, run, type Block, type Entry, type Shell } from '../../lib/terminal/shell';
@@ -36,6 +37,7 @@
     cwd = result.cwd;
     if (result.view) view = result.view;
     if (result.effect?.t === 'skilltree') skillTree = true;
+    if (result.effect?.t === 'dig') lookup(result.effect.query);
     if (result.effect?.t === 'download') {
       Object.assign(document.createElement('a'), { href: result.effect.href, download: '' }).click();
     }
@@ -44,6 +46,18 @@
     if (result.effect?.t === 'navigate') {
       const { href } = result.effect;
       setTimeout(() => (location.href = href), 350);
+    }
+    scrollDown();
+  }
+
+  /** Prints a placeholder at once, then the DNS's answer in its place. */
+  async function lookup(query: DigQuery) {
+    blocks.push({ t: 'lines', lines: [{ t: 'text', text: ';; querying the DNS...' }] });
+    const at = blocks.length - 1;
+    try {
+      blocks[at] = { t: 'lines', lines: await dig(query) };
+    } catch {
+      blocks[at] = { t: 'error', text: ';; connection timed out; no servers could be reached' };
     }
     scrollDown();
   }

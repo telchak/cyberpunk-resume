@@ -2,6 +2,7 @@
 // a new working directory and optional effects; the Svelte component renders them.
 import { profile } from '../../data/resume';
 import { SECTIONS } from '../daemons';
+import { parseDig, type DigQuery } from './dns';
 import {
   formatMode,
   formatPath,
@@ -36,7 +37,12 @@ export type Block =
   | { t: 'samurai' };
 
 export type Effect =
-  { t: 'clear' } | { t: 'navigate'; href: string } | { t: 'download'; href: string } | { t: 'skilltree' };
+  | { t: 'clear' }
+  | { t: 'navigate'; href: string }
+  | { t: 'download'; href: string }
+  | { t: 'skilltree' }
+  /** A DNS lookup: it takes time, so the terminal runs it and prints the answer (dns.ts). */
+  | { t: 'dig'; query: DigQuery };
 
 export interface Shell {
   root: DirNode;
@@ -269,6 +275,16 @@ const COMMANDS: Record<string, Command> = {
     usage: 'pwd',
     help: 'print the current directory',
     run: (_, { cwd }) => say(formatPath(cwd)),
+  },
+
+  dig: {
+    usage: 'dig <name> [type] [+short]',
+    help: 'look a name up in the DNS (A, AAAA, CNAME, MX, NS, TXT)',
+    run: (args) => {
+      const query = parseDig(args);
+      if (typeof query === 'string') return error(query);
+      return { blocks: [], effect: { t: 'dig', query } };
+    },
   },
 
   history: {
