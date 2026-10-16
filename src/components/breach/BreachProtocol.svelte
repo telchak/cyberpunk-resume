@@ -137,6 +137,8 @@
 
   function onkeydown(event: KeyboardEvent) {
     if (ended || banner !== null || event.metaKey || event.ctrlKey || event.altKey) return;
+    // Keys typed into a text field (an overlay's input, for example) are not breach controls.
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     switch (event.key) {
       case 'ArrowLeft':
       case 'ArrowUp':
