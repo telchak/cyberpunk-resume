@@ -38,6 +38,8 @@ export interface FileNode {
   mode?: number;
   /** Shown by `ls -l`; `sami` by default. */
   owner?: string;
+  /** An animation: running the file (`./name`, when executable) plays these frames. */
+  frames?: { fps: number; frames: string[] };
 }
 
 export interface DirNode {

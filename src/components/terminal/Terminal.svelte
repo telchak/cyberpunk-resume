@@ -22,6 +22,7 @@
   let booting = $state(true);
   let view = $state.raw<View | null>(null);
   let skillTree = $state(false);
+  let playing = $state(false);
   let history: string[] = [];
   let cursor = 0;
   let field: HTMLInputElement;
@@ -38,6 +39,7 @@
     if (result.view) view = result.view;
     if (result.effect?.t === 'skilltree') skillTree = true;
     if (result.effect?.t === 'dig') lookup(result.effect.query);
+    if (result.effect?.t === 'play') play(result.effect.frames, result.effect.fps);
     if (result.effect?.t === 'download') {
       Object.assign(document.createElement('a'), { href: result.effect.href, download: '' }).click();
     }
@@ -48,6 +50,21 @@
       setTimeout(() => (location.href = href), 350);
     }
     scrollDown();
+  }
+
+  /** Shows an animation's frames in one block, one after the other; the prompt waits for the end. */
+  async function play(frames: string[], fps: number) {
+    playing = true;
+    blocks.push({ t: 'frame', text: frames[0] ?? '' });
+    const at = blocks.length - 1;
+    for (const frame of frames) {
+      blocks[at] = { t: 'frame', text: frame };
+      scrollDown();
+      await new Promise((resolve) => setTimeout(resolve, 1000 / fps));
+    }
+    playing = false;
+    await tick();
+    field?.focus();
   }
 
   /** Prints a placeholder at once, then the DNS's answer in its place. */
@@ -213,6 +230,8 @@
             <SamuraiArt onupdate={scrollDown} />
           {:else if block.t === 'error'}
             <p class="error">{block.text}</p>
+          {:else if block.t === 'frame'}
+            <pre class="frame">{block.text}</pre>
           {:else if block.t === 'listing'}
             <ul class="listing">
               {#each block.entries as entry (entry.path)}
@@ -276,7 +295,7 @@
             bind:this={field}
             bind:value={input}
             {onkeydown}
-            disabled={booting}
+            disabled={booting || playing}
             type="text"
             autocomplete="off"
             autocapitalize="off"
@@ -289,7 +308,7 @@
 
       <nav class="quick" aria-label="Quick commands">
         {#each QUICK as command (command)}
-          <button type="button" disabled={booting} onclick={() => exec(command)}>{command}</button>
+          <button type="button" disabled={booting || playing} onclick={() => exec(command)}>{command}</button>
         {/each}
       </nav>
     </section>
@@ -541,6 +560,14 @@
     display: flex;
     gap: 0.6rem;
     margin-top: 0.7rem;
+  }
+
+  .frame {
+    margin: 0 0 0.4rem;
+    overflow-x: auto;
+    font: inherit;
+    line-height: 1.15;
+    white-space: pre;
   }
 
   .input.booting {

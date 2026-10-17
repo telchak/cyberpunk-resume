@@ -220,6 +220,26 @@ describe('permissions, base64 and history', () => {
     expect(error(run('chmod what identity/locked.txt', shell).blocks)).toBe("chmod: invalid mode: 'what'");
   });
 
+  it('plays an executable animation, and runs nothing else', () => {
+    const shell = shellWith('identity');
+    const identity = shell.root.children.find((n) => n.name === 'identity');
+    if (identity?.kind !== 'dir') throw new Error('identity is a directory');
+    identity.children.push({
+      kind: 'file',
+      name: 'bird',
+      lines: [],
+      frames: { fps: 4, frames: ['>', ' >'] },
+      mode: 0o644,
+    });
+
+    expect(error(run('./identity/bird', shell).blocks)).toBe('bash: ./identity/bird: Permission denied');
+    run('chmod +x identity/bird', shell);
+    expect(run('./identity/bird', shell).effect).toEqual({ t: 'play', fps: 4, frames: ['>', ' >'] });
+    expect(error(run('./README.txt', shell).blocks)).toBe('bash: ./README.txt: Permission denied');
+    expect(error(run('./identity', shell).blocks)).toBe('bash: ./identity: Is a directory');
+    expect(error(run('./nope', shell).blocks)).toBe('bash: ./nope: no such file or directory');
+  });
+
   it('round-trips base64, UTF-8 included, and rejects what is not base64', () => {
     const encoded = encodeBase64('Kabuki — nine seconds');
     expect(decodeBase64(encoded)).toBe('Kabuki — nine seconds');

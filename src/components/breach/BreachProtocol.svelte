@@ -12,7 +12,12 @@
     selectableCells,
     timeout,
   } from '../../lib/breach/engine';
-  import { loadExtension, type BreachExtension, type DaemonTeaser } from '../../lib/breach/extension';
+  import {
+    bonusSeconds,
+    loadExtension,
+    type BreachExtension,
+    type DaemonTeaser,
+  } from '../../lib/breach/extension';
   import { generatePuzzle } from '../../lib/breach/generator';
   import { createRng, randomSeed } from '../../lib/breach/random';
   import type { BreachState, Code, DaemonDef, Pos } from '../../lib/breach/types';
@@ -25,8 +30,10 @@
   /** How long the matrix takes to switch to an extra stage; the clock is paused meanwhile. */
   const REROUTE_MS = 1600;
 
-  const newBreach = (seed = randomSeed()) =>
-    createBreach(generatePuzzle(BREACH_OPTIONS, createRng(seed)).puzzle);
+  const newBreach = (seed = randomSeed()) => {
+    const { puzzle } = generatePuzzle(BREACH_OPTIONS, createRng(seed));
+    return createBreach({ ...puzzle, timeLimit: puzzle.timeLimit + bonusSeconds() });
+  };
 
   // `?seed=123` replays a specific puzzle.
   const params = new URLSearchParams(location.search);

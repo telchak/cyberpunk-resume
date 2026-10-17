@@ -29,6 +29,15 @@ export interface BreachExtension {
 
 const modules = import.meta.glob<{ default: BreachExtension }>('/src/extensions/*/breach.ts');
 
+// Extensions may also add seconds to every breach's clock, from src/extensions/<name>/bonus.ts
+// (its default export gives the seconds). Loaded with the page, unlike the rest: keep it tiny.
+const bonuses = import.meta.glob<{ default: () => number }>('/src/extensions/*/bonus.ts', { eager: true });
+
+/** Seconds the installed extensions add to a breach's clock. */
+export function bonusSeconds(): number {
+  return Object.values(bonuses).reduce((sum, bonus) => sum + bonus.default(), 0);
+}
+
 /** The first installed extension, or null when there is none. */
 export async function loadExtension(): Promise<BreachExtension | null> {
   const [load] = Object.values(modules);

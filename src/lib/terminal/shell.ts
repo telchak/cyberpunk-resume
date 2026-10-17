@@ -33,6 +33,8 @@ export type Block =
   | { t: 'long'; rows: { mode: string; owner: string; entry: Entry }[]; hidden: number }
   | { t: 'tree'; rows: { depth: number; entry: Entry; last: boolean }[]; hidden: number }
   | { t: 'error'; text: string }
+  /** One frame of an animation being played, shown as is (see the `play` effect). */
+  | { t: 'frame'; text: string }
   /** Easter egg: Samurai logo in ASCII art, loaded on demand by the UI. */
   | { t: 'samurai' };
 
@@ -42,7 +44,9 @@ export type Effect =
   | { t: 'download'; href: string }
   | { t: 'skilltree' }
   /** A DNS lookup: it takes time, so the terminal runs it and prints the answer (dns.ts). */
-  | { t: 'dig'; query: DigQuery };
+  | { t: 'dig'; query: DigQuery }
+  /** An executable file's animation: the terminal shows its frames one after the other. */
+  | { t: 'play'; fps: number; frames: string[] };
 
 export interface Shell {
   root: DirNode;
@@ -400,6 +404,15 @@ const HIDDEN: Record<string, () => Output> = {
   sudo: () => error('sudo: nice try. ICE does not negotiate with root.'),
 };
 
+/** Runs a file given by its path (`./name`): only animations can run, and only when executable. */
+function execute(path: string, shell: Shell): Output {
+  const r = lookup('bash', path, shell);
+  if (!('ok' in r)) return r;
+  if (r.node.kind === 'dir') return error(`bash: ${path}: Is a directory`);
+  if (!r.node.frames || !(modeOf(r.node) & 0o100)) return error(`bash: ${path}: Permission denied`);
+  return { blocks: [], effect: { t: 'play', ...r.node.frames } };
+}
+
 export function run(input: string, shell: Shell): Result {
   const [name = '', ...args] = input.trim().split(/\s+/).filter(Boolean);
   const echo: Block = { t: 'command', cwd: formatPath(shell.cwd), input };
@@ -410,6 +423,7 @@ export function run(input: string, shell: Shell): Result {
   let output: Output;
   if (command) output = command.run(args, shell);
   else if (hidden) output = hidden();
+  else if (name.includes('/')) output = execute(name, shell);
   else output = error(`${name}: command not found. Type \`help\`.`);
 
   return {
