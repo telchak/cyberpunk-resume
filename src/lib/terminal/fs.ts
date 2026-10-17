@@ -4,6 +4,8 @@ import type { Education, Job, Series, SideOp } from '../../data/resume';
 
 export type Line =
   | { t: 'text'; text: string }
+  /** Text shown as is, spaces kept: ASCII art, logs. */
+  | { t: 'pre'; text: string }
   | { t: 'heading'; text: string }
   | { t: 'item'; text: string }
   | { t: 'field'; key: string; value: string; href?: string }
@@ -38,6 +40,8 @@ export interface FileNode {
   mode?: number;
   /** Shown by `ls -l`; `sami` by default. */
   owner?: string;
+  /** An animation: running the file (`./name`, when executable) plays these frames. */
+  frames?: { fps: number; frames: string[] };
 }
 
 export interface DirNode {

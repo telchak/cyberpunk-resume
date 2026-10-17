@@ -16,6 +16,8 @@
       <p class="heading">{line.text}</p>
     {:else if line.t === 'text'}
       <p>{line.text}</p>
+    {:else if line.t === 'pre'}
+      <p class="pre">{line.text}</p>
     {:else if line.t === 'item'}
       <p class="item">{line.text}</p>
     {:else if line.t === 'field'}
@@ -44,6 +46,11 @@
   p {
     margin: 0;
     max-width: 52rem;
+  }
+
+  .pre {
+    max-width: none;
+    white-space: pre;
   }
 
   .heading {
