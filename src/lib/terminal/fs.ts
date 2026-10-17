@@ -4,6 +4,8 @@ import type { Education, Job, Series, SideOp } from '../../data/resume';
 
 export type Line =
   | { t: 'text'; text: string }
+  /** Text shown as is, spaces kept: ASCII art, logs. */
+  | { t: 'pre'; text: string }
   | { t: 'heading'; text: string }
   | { t: 'item'; text: string }
   | { t: 'field'; key: string; value: string; href?: string }
