@@ -3,7 +3,7 @@
   import { SECTIONS } from '../../lib/daemons';
   import type { View } from '../../lib/terminal/fs';
   import { dig, type DigQuery } from '../../lib/terminal/dns';
-  import { buildDossier, plantedHistory } from '../../lib/terminal/dossier';
+  import { buildDossier, extensionCommands, plantedHistory } from '../../lib/terminal/dossier';
   import { formatPath } from '../../lib/terminal/fs';
   import { complete, run, type Block, type Entry, type Shell } from '../../lib/terminal/shell';
   import { loadUnlocks } from '../../lib/unlocks';
@@ -29,7 +29,8 @@
   let screen: HTMLElement;
 
   const planted = plantedHistory();
-  const shell = (): Shell => ({ root, cwd, unlocked, history: [...planted, ...history] });
+  const extra = extensionCommands();
+  const shell = (): Shell => ({ root, cwd, unlocked, history: [...planted, ...history], extra });
 
   function exec(command: string) {
     const result = run(command, shell());
@@ -184,6 +185,7 @@
     'breach',
     'shard',
     'cv',
+    ...extra.map((c) => c.name),
   ];
 
   function closeSkillTree() {

@@ -220,6 +220,18 @@ describe('permissions, base64 and history', () => {
     expect(error(run('chmod what identity/locked.txt', shell).blocks)).toBe("chmod: invalid mode: 'what'");
   });
 
+  it('runs the commands extensions add, and lists them', () => {
+    const shell = {
+      ...shellWith(),
+      extra: [{ name: 'deck', help: 'open the deck', say: 'Opening...', href: '?x' }],
+    };
+    const result = run('deck', shell);
+    expect(text(result.blocks)).toEqual(['Opening...']);
+    expect(result.effect).toEqual({ t: 'navigate', href: '?x' });
+    expect(JSON.stringify(run('help', shell).blocks)).toContain('open the deck');
+    expect(error(run('deck', shellWith()).blocks)).toContain('command not found');
+  });
+
   it('plays an executable animation, and runs nothing else', () => {
     const shell = shellWith('identity');
     const identity = shell.root.children.find((n) => n.name === 'identity');
