@@ -48,12 +48,22 @@ export type Effect =
   /** An executable file's animation: the terminal shows its frames one after the other. */
   | { t: 'play'; fps: number; frames: string[] };
 
+/** A command added by a private extension (dossier.ts): it says a line, then opens a link. */
+export interface ExtraCommand {
+  name: string;
+  help: string;
+  say: string;
+  href: string;
+}
+
 export interface Shell {
   root: DirNode;
   cwd: string[];
   unlocked: ReadonlySet<string>;
   /** Commands typed in this shell before the current one, oldest first. */
   history: readonly string[];
+  /** Commands the extensions add, when they have any. */
+  extra?: readonly ExtraCommand[];
 }
 
 export interface Result {
@@ -144,13 +154,14 @@ const COMMANDS: Record<string, Command> = {
   help: {
     usage: 'help',
     help: 'list available commands',
-    run: () => ({
+    run: (_, { extra = [] }) => ({
       blocks: [
         {
           t: 'lines',
           lines: [
             { t: 'heading', text: 'AVAILABLE COMMANDS' },
             ...Object.values(COMMANDS).map((c): Line => ({ t: 'field', key: c.usage, value: c.help })),
+            ...extra.map((c): Line => ({ t: 'field', key: c.name, value: c.help })),
             { t: 'blank' },
             { t: 'text', text: 'Tab completes names, ↑/↓ browse history. Entries are clickable.' },
           ],
@@ -420,8 +431,10 @@ export function run(input: string, shell: Shell): Result {
 
   const command = COMMANDS[ALIASES[name] ?? name];
   const hidden = HIDDEN[name.toLowerCase()];
+  const extra = shell.extra?.find((c) => c.name === name);
   let output: Output;
   if (command) output = command.run(args, shell);
+  else if (extra) output = { ...say(extra.say), effect: { t: 'navigate', href: extra.href } };
   else if (hidden) output = hidden();
   else if (name.includes('/')) output = execute(name, shell);
   else output = error(`${name}: command not found. Type \`help\`.`);

@@ -11,6 +11,7 @@ import {
 } from '../../data/resume';
 import { SECTIONS } from '../daemons';
 import type { Card, DirNode, FileNode, Line, Node } from './fs';
+import type { ExtraCommand } from './shell';
 
 const text = (t: string): Line => ({ t: 'text', text: t });
 const heading = (t: string): Line => ({ t: 'heading', text: t });
@@ -58,11 +59,18 @@ function readme(unlocked: ReadonlySet<string>): FileNode {
 }
 
 // Private extensions (git-ignored), in src/extensions/<name>/dossier.ts: extra root entries (the
-// default export), and optionally earlier lines of the shell's history (`history`).
+// default export), optionally earlier lines of the shell's history (`history`) and commands of
+// their own (`commands`).
 const extensions = import.meta.glob<{
   default: (unlocked: ReadonlySet<string>) => Node[];
   history?: () => string[];
+  commands?: () => ExtraCommand[];
 }>('/src/extensions/*/dossier.ts', { eager: true });
+
+/** Commands the extensions add to the shell. */
+export function extensionCommands(): ExtraCommand[] {
+  return Object.values(extensions).flatMap((extension) => extension.commands?.() ?? []);
+}
 
 /** History lines the extensions planted, typed before the visitor's own (oldest first). */
 export function plantedHistory(): string[] {
