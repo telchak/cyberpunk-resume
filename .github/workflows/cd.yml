@@ -57,6 +57,6 @@ jobs:
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          version: '1.0.0-beta.15'
+          version: '1.0.0-beta.23'
           shell: |
             host | directory . | docker-build | with-registry-auth ghcr.io ${{ github.actor }} env://REGISTRY_TOKEN | publish ghcr.io/${{ github.repository }}:main-${{ github.run_number }}-${{ env.SHA }}
